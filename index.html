@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Insight - ORLIA '26</title>
+    <style>
+        /* Import Modern Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&family=Rye&display=swap');
+
+        :root {
+            --primary-color: #4A55E6; 
+            --primary-hover: #3b44b8;
+            --bg-gradient: linear-gradient(135deg, #e0e5ec 0%, #f0f4f8 100%);
+            --card-bg: #ffffff;
+            --text-main: #111111;
+            --text-muted: #666666;
+            --accent-red: #ff3c5f; 
+            --dark-bg: #050505;
+            --dark-card: #0f0f13;
+            --dark-border: #1f1f25;
+            --border-radius-card: 24px; 
+            --border-radius-btn: 50px; 
+            --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.08);
+            --danger-color: #e63946;
+            --success-color: #2a9d8f;
+            /* Footer Specific Gradient */
+            --footer-gradient: linear-gradient(90deg, #1d0b31 0%, #3e114d 50%, #1d0b31 100%);
+        }
+
+        /* Top Gap Fix */
+        html, body { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            border: 0 !important;
+            width: 100%;
+        }
+
+        html { 
+            scroll-behavior: smooth; 
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            font-smooth: always;
+        }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            position: absolute;
+            top: 0 !important;
+            left: 0;
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: center; 
+            align-items: center;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        .navbar.hidden {
+            transform: translateY(-100%);
+        }
+
+        .nav-logo-left {
+            position: absolute;
+            top: 20px;
+            left: 175px; /* moved 200px right */
+            background: white;
+            padding: 10px 35px; 
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-logo-left img { height: 60px; width: auto; max-width: 220px; object-fit: contain; }
+
+        .nav-links { display: flex; gap: 40px; }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .nav-links a:hover { color: #d1d5db; }
+
+        .nav-logos-right {
+            position: absolute;
+            top: 8px;
+            right: 50px; /* moved slightly right by lowering offset */
+            display: flex;
+            align-items: center;
+            gap: 25px; 
+        }
+        .nav-logos-right img { height: 100px; width: auto; object-fit: contain; }
+        /* hide-only logos when scrolling down */
+        .nav-logos-right.hide-on-scroll,
+        .nav-logo-left.hide-on-scroll {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            /* background will be supplied by an optional video element */
+            background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.8));
+            padding: 0 20px;
+        }
+        .hero video.bg-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+
+        .hero-title {
+            font-family: 'Rye', cursive;
+            font-size: 5rem; 
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #7a0b1b, 4px 4px 0 #7a0b1b, 6px 6px 0 #7a0b1b, 8px 8px 0 #7a0b1b, 10px 10px 15px rgba(0,0,0,0.5);
+            margin-top: 60px;
+            animation: titlePulse 4s ease-in-out infinite;
+        }
+
+        .hero-subtitle { 
+            font-family: 'Oswald', sans-serif; 
+            font-size: 1.5rem; 
+            letter-spacing: 6px; 
+            margin-bottom: 30px; 
+            text-transform: uppercase; 
+            font-weight: 700; 
+            animation: subtitleGlow 3s ease-in-out infinite;
+        }
+
+        .hero-poem {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 300;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            max-width: 600px;
+            margin: 0 auto 50px auto;
+            color: #e5e7eb;
+            animation: poemFloat 5s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: translateY(0) scale(1); text-shadow: 2px 2px 0 #7a0b1b, 4px 4px 0 #7a0b1b, 6px 6px 0 #7a0b1b, 8px 8px 0 #7a0b1b, 10px 10px 15px rgba(0,0,0,0.5); }
+            50% { transform: translateY(-4px) scale(1.02); text-shadow: 2px 2px 0 #7a0b1b, 4px 4px 0 #7a0b1b, 6px 6px 0 #7a0b1b, 8px 8px 0 #7a0b1b, 0px 0px 25px rgba(255, 60, 95, 0.7), 0px 0px 45px rgba(255, 60, 95, 0.4); }
+        }
+
+        @keyframes subtitleGlow {
+            0%, 100% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.1); transform: translateY(0); }
+            50% { text-shadow: 0 0 15px rgba(255, 255, 255, 0.6), 0 0 25px var(--accent-red); transform: translateY(-2px); }
+        }
+
+        @keyframes poemFloat {
+            0%, 100% { transform: translateY(0); opacity: 0.9; text-shadow: 0 0 0px rgba(255,255,255,0); }
+            50% { transform: translateY(-3px); opacity: 1; text-shadow: 0 0 10px rgba(255,255,255,0.4); }
+        }
+
+        /* --- STACKED FEEDBACK LAYOUT --- */
+        .split-layout { display: flex; flex-direction: column; width: 100%; min-height: 100vh; }
+
+        .split-left {
+            width: 100%;
+            background: #08080a;
+            background-image: radial-gradient(circle at center, #14141c 0%, #050505 100%);
+            color: white;
+            padding: 120px 10% 80px 10%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .split-right {
+            width: 100%;
+            background: #f0f0f0;
+            padding: 80px 10% 120px 10%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .day-badge {
+            display: inline-block;
+            background: rgba(230, 57, 70, 0.15);
+            color: #e63946;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(230, 57, 70, 0.3);
+        }
+
+        .left-title {
+            font-family: 'Rye', cursive;
+            font-size: 4.5rem;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            color: #f4f4f4;
+            letter-spacing: 2px;
+            text-shadow: 2px 0px 0px rgba(255,255,255,0.5), -2px 0px 0px rgba(100,100,100,0.5);
+        }
+
+        .form-wrapper { max-width: 600px; width: 100%; margin: 0 auto; }
+        .form-heading { font-family: 'Oswald', sans-serif; font-size: 2.5rem; color: #111; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; font-weight: 700; text-align: center; }
+        
+        .form-group { margin-bottom: 22px; text-align: left; }
+        label { display: block; margin-bottom: 6px; font-weight: 700; font-size: 0.75rem; color: #111; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        input, select, textarea {
+            width: 100%; padding: 16px 18px; background: #e4e4e4; border: none; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; color: #000; font-weight: 700; transition: background 0.3s;
+        }
+
+        /* Makes the unselected placeholder options non-bold */
+        select:invalid, select option[value=""] {
+            font-weight: 400;
+        }
+
+        .btn {
+            background: #111; color: #fff; width: 100%; padding: 18px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 1rem; border: none; cursor: pointer; transition: 0.3s;
+        }
+        .btn:hover { background: #333; transform: translateY(-2px); }
+
+        .alert { padding: 15px 20px; margin-bottom: 25px; border-radius: 8px; font-weight: 700; display: none; text-align: left; }
+        .alert.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+
+        /* --- ABOUT US PANEL --- */
+        .page-container { display: none; background: var(--dark-bg); color: white; padding-top: 120px; padding-bottom: 60px; min-height: 100vh; }
+        .about-section { max-width: 1400px; margin: 0 auto; padding: 60px 5%; }
+        .about-intro-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 60px; margin-bottom: 120px; align-items: start; }
+        .about-main-text h4 { color: var(--accent-red); font-family: 'Oswald', sans-serif; letter-spacing: 3px; font-weight: 700; margin-bottom: 15px; text-transform: uppercase; font-size: 0.85rem; }
+        .about-main-text h1 { font-family: 'Oswald', sans-serif; font-size: 5.5rem; line-height: 0.9; font-weight: 700; text-transform: uppercase; margin-bottom: 35px; color: #fff; }
+        .about-main-text h1 span { color: var(--accent-red); }
+        .about-main-text p { font-size: 1.25rem; color: #aaa; max-width: 650px; font-weight: 400; line-height: 1.6; }
+        .vision-mission-box { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 20px; padding: 45px; }
+        .vm-item { margin-bottom: 35px; }
+        .vm-item h5 { font-family: 'Oswald', sans-serif; font-size: 0.8rem; letter-spacing: 2px; color: #555; text-transform: uppercase; margin-bottom: 12px; font-weight: 700; }
+        .vm-item p { font-size: 0.95rem; color: #ddd; line-height: 1.7; }
+        .section-header { margin-bottom: 60px; border-bottom: 1px solid #1a1a1a; padding-bottom: 20px; }
+        .section-header h2 { font-family: 'Oswald', sans-serif; font-size: 2.8rem; text-transform: uppercase; font-weight: 700; color: #fff; letter-spacing: 1px; }
+        .council-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-bottom: 140px; }
+        .council-card { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 24px; padding: 35px; transition: transform 0.3s; }
+        .council-card:hover { transform: translateY(-10px); }
+        .council-img { width: 100%; aspect-ratio: 4/3; background: #1a1a1a; border-radius: 16px; margin-bottom: 30px; overflow: hidden; border: 1px solid #222; }
+        .council-img img { width: 100%; height: 100%; object-fit: cover; }
+        .council-card h5 { color: #666; font-family: 'Oswald', sans-serif; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+        .council-card h3 { font-family: 'Oswald', sans-serif; font-size: 1.8rem; text-transform: uppercase; color: #fff; margin-bottom: 18px; font-weight: 700; }
+        .club-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .club-focus-box { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 24px; padding: 55px; }
+        .club-focus-box h2 { font-family: 'Oswald', sans-serif; font-size: 3rem; text-transform: uppercase; color: #fff; margin-bottom: 25px; font-weight: 700; line-height: 1.1; }
+        .club-focus-box p { color: #888; margin-bottom: 45px; line-height: 1.6; font-size: 1.1rem; }
+        .tag-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .club-tag { border: 1.5px solid #222; border-radius: 50px; padding: 10px 22px; font-size: 0.7rem; font-family: 'Oswald', sans-serif; letter-spacing: 2px; text-transform: uppercase; color: #666; font-weight: 700; }
+        .coord-card { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 20px; padding: 30px; display: flex; align-items: center; gap: 25px; margin-bottom: 20px; }
+        .coord-img { width: 100px; height: 100px; border-radius: 12px; background: #1a1a1a; overflow: hidden; flex-shrink: 0; border: 1px solid #222; }
+        .coord-img img { width: 100%; height: 100%; object-fit: cover; }
+        .coord-info h5 { color: #555; font-family: 'Oswald', sans-serif; letter-spacing: 1px; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; }
+        .coord-info h4 { font-family: 'Oswald', sans-serif; font-size: 1.5rem; text-transform: uppercase; color: #fff; margin: 5px 0; font-weight: 700; }
+        .coord-info p { font-size: 0.9rem; color: #888; }
+
+        /* --- ADMIN PANEL (UPDATED SPLIT DESIGN) --- */
+        .info-cards-admin { display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
+        .info-card-dark { background: #111114; border: 1px solid #222; padding: 20px 30px; border-radius: 12px; min-width: 160px; text-align: left; }
+        .info-card-dark .info-label { display: block; color: #666; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; font-weight: 700; }
+        .info-card-dark .info-value { display: block; color: #fff; font-size: 2rem; font-weight: 700; }
+        
+        .dashboard-tabs { display: flex; gap: 10px; margin-bottom: 30px; justify-content: center; }
+        .tab-btn { background: #e4e4e4; color: #333; border: none; padding: 12px 25px; border-radius: 8px; font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.3s; font-weight: 700; }
+        .tab-btn.active { background: #111; color: white; }
+        .panel { display: none; animation: fadeIn 0.4s ease; text-align: left; }
+        .panel.active { display: block; }
+        
+        .event-item { background: #e4e4e4; padding: 15px 20px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #111; }
+        .btn-delete { background: #ffcdd2; color: #d32f2f; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+        
+        .stat-grid { display: flex; gap: 15px; margin-bottom: 25px; }
+        .stat-box { background: #e4e4e4; padding: 20px; border-radius: 8px; flex: 1; }
+        .stat-box h4 { font-size: 0.75rem; color: #555; text-transform: uppercase; margin-bottom: 5px; font-weight: 700; }
+        .stat-box .val { font-size: 2rem; font-weight: 700; color: #111; }
+        
+        .comment-item { background: #e4e4e4; padding: 15px 20px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #111; font-weight: 700; color: #111; }
+        .comment-item small { color: #666; display: block; margin-top: 5px; font-weight: 500; font-size: 0.8rem; }
+        
+        /* --- SMART SUGGESTION STYLES --- */
+        .ai-suggestion-container { margin-top: 30px; background: #fff; padding: 25px; border-radius: 12px; border-left: 6px solid #4A55E6; box-shadow: 0 10px 30px rgba(0,0,0,0.05); animation: fadeIn 0.6s ease; }
+        .ai-suggestion-container h3 { font-family: 'Oswald', sans-serif; font-size: 1.2rem; color: #111; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .ai-badge { background: #4A55E6; color: #fff; font-size: 0.6rem; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+        #aiSuggestionsContent { font-size: 0.95rem; color: #444; font-weight: 500; line-height: 1.6; }
+        #aiSuggestionsContent ul { padding-left: 20px; margin: 0; }
+        #aiSuggestionsContent li { margin-bottom: 10px; }
+        .loading-ai { font-style: italic; color: #888; display: flex; align-items: center; gap: 8px; }
+        .loading-dot { animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { opacity: 0.3; } to { opacity: 1; } }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- FOOTER --- */
+        .site-footer { background: var(--footer-gradient); padding: 40px 5%; color: white; border-top: 1px solid rgba(255,255,255,0.05); }
+        .footer-container { max-width: 1500px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .footer-pill-combined { display: flex; align-items: center; border-radius: 100px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); height: 48px; }
+        .follow-label-box { background: #b5b5b5; color: #1d0b31; height: 100%; display: flex; align-items: center; padding: 0 25px; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; gap: 12px; }
+        .url-box { background: transparent; padding: 0 25px; height: 100%; display: flex; align-items: center; gap: 12px; color: white; text-decoration: none; font-size: 0.95rem; font-weight: 500; transition: background 0.3s; }
+        .url-box:hover { background: rgba(255,255,255,0.05); }
+        .footer-social-group { display: flex; align-items: center; gap: 25px; }
+        .social-icons-row { display: flex; gap: 10px; }
+        .social-circle-outline { width: 38px; height: 38px; border: 1px solid rgba(255,255,255,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; text-decoration: none; transition: all 0.3s ease; }
+        .social-circle-outline:hover { border-color: white; background: rgba(255,255,255,0.1); }
+        .social-circle-outline svg { width: 16px; height: 16px; }
+        .handle-text { font-family: 'Poppins', sans-serif; font-weight: 400; font-size: 1.15rem; color: rgba(255,255,255,0.9); }
+        .footer-contact-group { display: flex; align-items: center; gap: 15px; }
+        .phone-circle-outline { width: 42px; height: 42px; border: 1.5px solid rgba(255,255,255,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; }
+        .phone-val { font-family: 'Poppins', sans-serif; font-weight: 500; font-size: 1.25rem; letter-spacing: 0.5px; }
+
+        @media (max-width: 1100px) {
+            .about-intro-grid, .council-grid, .club-layout { grid-template-columns: 1fr; }
+            .footer-container { flex-direction: column; text-align: center; gap: 30px; }
+            .footer-social-group, .footer-contact-group { flex-direction: column; gap: 10px; }
+            .navbar { flex-direction: column; gap: 20px; position: absolute; padding: 20px; padding-top: 30px; width: 100%; }
+            .nav-logo-left { position: relative; top: 0; left: 0; margin-bottom: 10px; }
+            .nav-logos-right { display: none; }
+            .split-layout { flex-direction: column; }
+            .split-left, .split-right { width: 100%; padding: 60px 5%; min-height: auto; }
+            .hero-title { margin-top: 180px; } 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PERSISTENT NAVBAR -->
+    <nav class="navbar" id="persistentNavbar">
+        <div class="nav-logo-left"><img src="https://orlia26.vercel.app/_next/image?url=%2Flogomainfirst.png&w=1920&q=75" alt="College Logo"></div>
+        <div class="nav-links">
+            <a onclick="showPage('mainPage')">Home</a>
+            <a onclick="showPage('mainPage'); setTimeout(()=>document.getElementById('feedback').scrollIntoView({behavior:'smooth'}),150)">Events</a>
+            <a onclick="showPage('aboutPage')">About Us</a>
+            <a onclick="showPage('adminPage')">Admin</a>
+        </div>
+        <div class="nav-logos-right">
+            <img src="https://orlia26.vercel.app/4.svg" alt="Top Right Logo">
+            <img src="https://orlia26.vercel.app/logo-1.svg" alt="Additional Logo" style="margin-left:15px;">
+        </div>
+    </nav>
+
+    <!-- MAIN LANDING PAGE -->
+    <div id="mainPage">
+        <header class="hero">
+            <!-- optional video background; replace src with your file or hosted URL -->
+            <video class="bg-video" autoplay muted loop playsinline>
+                <source src="C:\Users\PC\OneDrive\Desktop\popro\vid1.mp4" type="video/mp4">
+                <!-- add additional <source> tags for other formats if needed -->
+            </video>
+            <h1 class="hero-title">ORLIA '26</h1>
+            <h2 class="hero-subtitle">Intra College Cultural Fest</h2>
+            <div class="hero-poem">
+                At Orlia 2K26, the stage belongs to you,<br>
+                To express, to perform, to create something new,<br>
+                A celebration of spirit, unity, and pride,<br>
+                Where the energy of youth cannot hide.
+            </div>
+            <div class="scroll-indicator">Scroll to Feedback<br>↓</div>
+        </header>
+
+        <main class="feedback-section" id="feedback">
+            <div class="split-layout">
+                <!-- PANEL 1: EVENT INSIGHT -->
+                <div class="split-left">
+                    <div class="day-badge">ORLIA '26</div>
+                    <h2 class="left-title">Event Feedback</h2>
+                    <p style="color:#aaa; margin-bottom: 40px; max-width: 800px;">A collective movement of art and expression. Share your feedback below to help us shape the future of MKCE's cultural legacy.</p>
+                </div>
+                
+                <!-- PANEL 2: SUBMIT FEEDBACK -->
+                <div class="split-right">
+                    <div class="form-wrapper">
+                        <h2 class="form-heading">SUBMIT FEEDBACK</h2>
+                        <div id="alertBox" class="alert"></div>
+                        <form id="feedbackForm">
+                            <div class="form-group"><label>REGISTER NUMBER</label><input type="text" id="regNo" required></div>
+                            <div class="form-row">
+                                <div class="form-group"><label>YEAR</label><select id="year" required><option value="" disabled selected>Select</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option><option value="4">4th Year</option></select></div>
+                                <div class="form-group"><label>DEPARTMENT</label><input type="text" id="dept" required></div>
+                            </div>
+                            <div class="form-group"><label>EVENT ATTENDED</label><select id="eventSelect" required><option value="" disabled selected>-- Choose --</option></select></div>
+                            <div class="form-row">
+                                <div class="form-group"><label>ORGANIZATION (Rating) </label><input type="number" id="ratingOrg" min="1" max="5" required></div>
+                                <div class="form-group"><label>TIME MANAGEMENT(Rating)</label><input type="number" id="ratingTime" min="1" max="5" required></div>
+                                <div class="form-group"><label>VENUE (Rating)</label><input type="number" id="ratingVenue" min="1" max="5" required></div>
+                            </div>
+                            <div class="form-group"><label>OVERALL EXPERIENCE (Rating)</label><input type="number" id="ratingOverall" min="1" max="5" required></div>
+                            <div class="form-group"><label>HOW WAS IT?</label><textarea id="feedbackExp" rows="2" required></textarea></div>
+                            <div class="form-group"><label>SUGGESTIONS FOR IMPROVEMENT</label><textarea id="feedbackSugg" rows="2"></textarea></div>
+                            <button type="submit" class="btn">SUBMIT FEEDBACK</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ABOUT US PAGE -->
+    <div id="aboutPage" class="page-container">
+        <section class="about-section">
+            <div class="about-intro-grid">
+                <div class="about-main-text">
+                    <h4>ABOUT MKCE</h4>
+                    <h1>THE PEOPLE<br><span>BEHIND MKCE</span></h1>
+                    <p>A collective of visionary leaders and cultural champions who keep MKCE grounded in excellence.</p>
+                </div>
+                <div class="vision-mission-box">
+                    <div class="vm-item"><h5>VISION</h5><p>To emerge as a leader among the top institutions in technical education.</p></div>
+                    <div class="vm-item"><h5>MISSION</h5><p>Produce smart technocrats who can surmount global challenges.</p></div>
+                </div>
+            </div>
+
+            <div class="section-header"><h2>MANAGEMENT COUNCIL</h2></div>
+            <div class="council-grid">
+                <div class="council-card">
+                    <div class="council-img"><img src="https://orlia26.vercel.app/_next/image?url=%2Fchairman.jpeg&w=640&q=75" alt="Chairman"></div>
+                    <h5>CHAIRMAN</h5><h3>DR. K. RAMAKRISHNAN</h3>
+                    <p>A visionary leader who transforms ideas into institutions, guiding MKCE with wisdom, integrity, and a commitment to academic excellence.</p>
+                </div>
+                <div class="council-card">
+                    <div class="council-img"><img src="https://orlia26.vercel.app/_next/image?url=%2Fjoint-secretary.jpeg&w=640&q=75" alt="Joint Secretary"></div>
+                    <h5>JOINT SECRETARY</h5><h3>MR. K.R. CHARUN KUMAR</h3>
+                    <p>A dynamic pillar of coordination and growth, ensuring smooth administration while driving innovation and progress across the institution.</p>
+                </div>
+                <div class="council-card">
+                    <div class="council-img"><img src="https://orlia26.vercel.app/_next/image?url=%2Fprincipal.png&w=640&q=75" alt="Principal"></div>
+                    <h5>PRINCIPAL</h5><h3>DR. B.S. MURUGAN</h3>
+                    <p>The academic backbone of MKCE, inspiring students and faculty alike with leadership, discipline, and a passion for holistic development.</p>
+                </div>
+            </div>
+
+            <div class="section-header"><h2>FINE ARTS CULTURAL CLUB</h2></div>
+            <div class="club-layout">
+                <div class="club-focus-box">
+                    <h2>CREATIVITY LIVES HERE</h2>
+                    <p>The Fine Arts Cultural Club orchestrates stagecraft, music, and celebration.</p>
+                    <div class="tag-row"><span class="club-tag">STAGECRAFT</span><span class="club-tag">PERFORMANCE</span><span class="club-tag">COMMUNITY</span></div>
+                </div>
+                <div class="club-coordinators">
+                    <div class="coord-card">
+                        <div class="coord-img"><img src="https://orlia26.vercel.app/_next/image?url=%2Framesh.jpg&w=96&q=75" alt="Dr. C. Ramesh"></div>
+                        <div class="coord-info">
+                            <h5>COORDINATOR</h5>
+                            <h4>DR. C. RAMESH</h4>
+                            <p>Students Affairs Head</p>
+                        </div>
+                    </div>
+                    <div class="coord-card">
+                        <div class="coord-img"><img src="https://orlia26.vercel.app/_next/image?url=%2Fmaniraj.jpg&w=96&q=75" alt="Mr. P. Maniraj"></div>
+                        <div class="coord-info">
+                            <h5>COORDINATOR</h5>
+                            <h4>MR. P. MANIRAJ</h4>
+                            <p>Fine Arts Head</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div id="adminPage" class="page-container" style="padding: 0;">
+        
+        <!-- ADMIN LOGIN VIEW -->
+        <div id="loginCard" class="split-layout" style="flex-direction: row;">
+            <div class="split-left">
+                <div class="day-badge">SECURE ACCESS</div>
+                <h2 class="left-title">Admin<br>Portal</h2>
+                <p style="color:#aaa; max-width: 400px; margin: 20px auto;">Authorized personnel only. Access the control center to manage events and view insights.</p>
+                <a onclick="showPage('mainPage')" style="color:#888; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; margin-top:20px;">← BACK TO HOME</a>
+            </div>
+            <div class="split-right">
+                <div class="form-wrapper">
+                    <h2 class="form-heading" style="text-align: left;">AUTHENTICATE</h2>
+                    <p style="color: #666; margin-bottom: 30px; font-weight: 500;">Enter your credentials to proceed.</p>
+                    <form id="adminLoginForm">
+                        <div class="form-group"><label>USERNAME</label><input type="text" id="adminUser" required></div>
+                        <div class="form-group"><label>PASSWORD</label><input type="password" id="adminPass" required></div>
+                        <button type="submit" class="btn" style="margin-top: 10px;">LOGIN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN DASHBOARD VIEW -->
+        <div id="adminDashboard" class="split-layout" style="display: none; flex-direction: row;">
+            <div class="split-left" style="justify-content: center; padding-top: 80px;">
+                <h2 class="left-title" style="font-size: 3.5rem;">Control<br>Center</h2>
+                
+                <div class="info-cards-admin">
+                    <div class="info-card-dark">
+                        <span class="info-label">TOTAL FEEDBACKS</span>
+                        <span class="info-value" id="globalFeedbackCount" style="color: #ffd54f;">0</span>
+                    </div>
+                    <div class="info-card-dark">
+                        <span class="info-label">ACTIVE EVENTS</span>
+                        <span class="info-value" id="activeEventsCount">0</span>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="logoutAdmin()" style="margin-top: 40px; max-width: 200px; background: rgba(255,255,255,0.1); border: 1px solid #333;">LOGOUT</button>
+            </div>
+            
+            <div class="split-right" style="justify-content: flex-start; padding-top: 120px;">
+                <div class="form-wrapper" style="max-width: 100%;">
+                    
+                    <div class="dashboard-tabs">
+                        <button class="tab-btn active" onclick="switchTab('events')">Manage Events</button>
+                        <button class="tab-btn" onclick="switchTab('analytics')">Insights</button>
+                    </div>
+                    
+                    <!-- Events Panel -->
+                    <div id="panel-events" class="panel active">
+                        <h2 class="form-heading" style="text-align: left; font-size: 1.8rem; margin-bottom: 20px;">EVENTS LIST</h2>
+                        <form id="addEventForm" class="form-row" style="margin-bottom: 25px;">
+                            <input type="text" id="newEventInput" placeholder="NEW EVENT NAME" style="flex: 2;" required>
+                            <button type="submit" class="btn" style="flex: 1;">ADD EVENT</button>
+                        </form>
+                        <div id="eventsList" style="display: flex; flex-direction: column; max-height: 400px; overflow-y: auto;"></div>
+                    </div>
+                    
+                    <!-- Analytics Panel -->
+                    <div id="panel-analytics" class="panel">
+                        <h2 class="form-heading" style="text-align: left; font-size: 1.8rem; margin-bottom: 20px;">DATA ANALYTICS</h2>
+                        <div class="form-group">
+                            <label>SELECT EVENT</label>
+                            <select id="analyticsEventSelect"></select>
+                        </div>
+                        
+                        <div class="stat-grid">
+                            <div class="stat-box">
+                                <h4>AVG RATING</h4>
+                                <div class="val" id="statRating">0.0</div>
+                            </div>
+                            <div class="stat-box">
+                                <h4>ENTRIES</h4>
+                                <div class="val" id="statCount">0</div>
+                            </div>
+                        </div>
+                        
+                        <label>RECENT FEEDBACK</label>
+                        <div id="recentCommentsList" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column;"></div>
+
+                        <!-- Rule-Based Smart Suggestion Container -->
+                        <div class="ai-suggestion-container" id="aiSuggestionBox">
+                            <h3><span class="ai-badge">Smart Data</span> Auto-Generated Insights</h3>
+                            <div id="aiSuggestionsContent"><p class="loading-ai" style="color: #666; font-size: 0.9rem;">Select an event to see insights <span class="loading-dot">.</span></p></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-pill-combined">
+                <div class="follow-label-box">
+                    FOLLOW US 
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:14px; height:14px;"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+                </div>
+                <a href="https://www.mkce.ac.in" target="_blank" class="url-box">
+                    <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px; height:18px;"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                    www.mkce.ac.in
+                </a>
+            </div>
+            <div class="footer-social-group">
+                <div class="social-icons-row">
+                    <a href="#" class="social-circle-outline"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+                    <a href="#" class="social-circle-outline"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.84 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg></a>
+                    <a href="#" class="social-circle-outline"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+                    <a href="#" class="social-circle-outline"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+                    <a href="#" class="social-circle-outline"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+                </div>
+                <div class="handle-text">/mkcekarur</div>
+            </div>
+            <div class="footer-contact-group">
+                <div class="phone-circle-outline">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                </div>
+                <div class="phone-val">+91 97503 56377</div>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // LIVE FIREBASE CONFIGURATION
+        const firebaseConfigStr = JSON.stringify({
+            apiKey: "AIzaSyC8XiecSqBBmNg8H1Q_A8RvkNXq1uW-KEo",
+            authDomain: "orlia26-feedback.firebaseapp.com",
+            projectId: "orlia26-feedback",
+            storageBucket: "orlia26-feedback.firebasestorage.app",
+            messagingSenderId: "367207184015",
+            appId: "1:367207184015:web:49edf46118080934b8a2fa"
+        });
+        const appId = "orlia-live-data";
+        
+        let auth, db;
+
+        // Navigation Controller
+        window.showPage = (pageId) => {
+            const pages = ['mainPage', 'aboutPage', 'adminPage'];
+            pages.forEach(p => {
+                const el = document.getElementById(p);
+                if(el) el.style.display = (p === pageId) ? 'block' : 'none';
+            });
+            
+            const nav = document.getElementById('persistentNavbar');
+            if(nav) {
+                if(pageId === 'mainPage') {
+                    nav.style.position = 'absolute'; 
+                    nav.style.background = 'transparent';
+                } else {
+                    nav.style.position = 'fixed'; 
+                    nav.style.background = 'rgba(5,5,5,0.95)';
+                }
+            }
+            window.scrollTo(0, 0);
+        };
+
+        // Initialize default view to prevent load gaps
+        showPage('mainPage');
+
+        if (firebaseConfigStr) {
+            const app = initializeApp(JSON.parse(firebaseConfigStr));
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else { 
+                        await signInAnonymously(auth); 
+                    }
+                } catch (error) {
+                    await signInAnonymously(auth);
+                }
+            };
+            initAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'eventsDoc'), (snap) => {
+                        window.appEvents = snap.exists() ? snap.data().events : ["Mozhi Mayakkam"];
+                        const countEl = document.getElementById('activeEventsCount');
+                        if(countEl) countEl.innerText = window.appEvents.length;
+                        updateMainDropdown();
+                        updateAnalyticsDropdown();
+                        renderAdminEvents();
+                    });
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'feedbacks'), (snap) => {
+                        window.submittedFeedbacks = [];
+                        snap.forEach(d => window.submittedFeedbacks.push(d.data()));
+                        const countEl = document.getElementById('globalFeedbackCount');
+                        if(countEl) countEl.innerText = snap.size;
+                        const sel = document.getElementById('analyticsEventSelect');
+                        if (sel && sel.value) loadAnalyticsForEvent(sel.value);
+                    });
+                }
+            });
+        }
+
+        // ensure rating inputs clamp to 1-5 while typing
+        (function(){
+            ['ratingOrg','ratingTime','ratingVenue','ratingOverall'].forEach(id=>{
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.setAttribute('min','1');
+                el.setAttribute('max','5');
+                el.addEventListener('input', ()=>{
+                    const v = parseInt(el.value);
+                    if (isNaN(v)) return;
+                    if (v > 5) el.value = 5;
+                    if (v < 1) el.value = 1;
+                });
+            });
+        })();
+
+        document.getElementById('feedbackForm').onsubmit = async (e) => {
+            e.preventDefault();
+            if (!auth || !auth.currentUser) { alert("Database not connected."); return; }
+
+            // validate rating range before submitting
+            const getVal = id => parseInt(document.getElementById(id).value) || 0;
+            const ratingOrg = getVal('ratingOrg');
+            const ratingTime = getVal('ratingTime');
+            const ratingVenue = getVal('ratingVenue');
+            const ratingOverall = getVal('ratingOverall');
+            const ratings = [ratingOrg, ratingTime, ratingVenue, ratingOverall];
+            if (ratings.some(v => v < 1 || v > 5)) {
+                alert('Please enter ratings between 1 and 5.');
+                return;
+            }
+
+            const btn = e.target.querySelector('.btn');
+            btn.innerText = "Submitting...";
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'feedbacks'), {
+                    regNo: document.getElementById('regNo').value,
+                    year: document.getElementById('year').value,
+                    dept: document.getElementById('dept').value,
+                    eventName: document.getElementById('eventSelect').value,
+                    ratingOrg: ratingOrg,
+                    ratingTime: ratingTime,
+                    ratingVenue: ratingVenue,
+                    ratingOverall: ratingOverall,
+                    experience: document.getElementById('feedbackExp').value,
+                    suggestions: document.getElementById('feedbackSugg').value,
+                    timestamp: Date.now()
+                });
+                alert("Feedback Shared!"); e.target.reset();
+            } catch (err) { console.error(err); }
+            btn.innerText = "SUBMIT FEEDBACK";
+        };
+
+        // hide navbar on scroll down, show on scroll up
+        (function(){
+            let lastScroll = 0;
+            const nav = document.getElementById('persistentNavbar');
+            const logosRight = document.querySelector('.nav-logos-right');
+            const logoLeft = document.querySelector('.nav-logo-left');
+            window.addEventListener('scroll', () => {
+                const current = window.pageYOffset || document.documentElement.scrollTop;
+                if (current > lastScroll && current > 100) {
+                    nav.classList.add('hidden');
+                    if (logosRight) logosRight.classList.add('hide-on-scroll');
+                    if (logoLeft) logoLeft.classList.add('hide-on-scroll');
+                } else {
+                    nav.classList.remove('hidden');
+                    if (logosRight) logosRight.classList.remove('hide-on-scroll');
+                    if (logoLeft) logoLeft.classList.remove('hide-on-scroll');
+                }
+                lastScroll = current <= 0 ? 0 : current; // for Mobile or negative scrolling
+            });
+        })();
+
+        document.getElementById('adminLoginForm').onsubmit = (e) => {
+            e.preventDefault();
+            if(document.getElementById('adminUser').value==='harish' && document.getElementById('adminPass').value==='2005') {
+                document.getElementById('loginCard').style.display='none';
+                document.getElementById('adminDashboard').style.display='flex';
+            } else { alert("Invalid Credentials"); }
+        };
+        
+        window.logoutAdmin = () => location.reload();
+        
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase().includes(tab)));
+            document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id.includes(tab)));
+        };
+
+        const updateMainDropdown = () => {
+            const el = document.getElementById('eventSelect');
+            if (el) el.innerHTML = '<option disabled selected value="">-- Choose --</option>' + (window.appEvents || []).map(e => `<option value="${e}">${e}</option>`).join('');
+        };
+
+        const updateAnalyticsDropdown = () => {
+            const el = document.getElementById('analyticsEventSelect');
+            if (el) el.innerHTML = '<option disabled selected value="">Select Event</option>' + (window.appEvents || []).map(e => `<option value="${e}">${e}</option>`).join('');
+        };
+
+        const renderAdminEvents = () => {
+            const el = document.getElementById('eventsList');
+            if (el) el.innerHTML = (window.appEvents || []).map((e,i) => `<div class="event-item"><span>${e}</span><button class="btn-delete" onclick="deleteEvent(${i})">REMOVE</button></div>`).join('');
+        };
+
+        window.deleteEvent = async (i) => {
+            if (!auth || !auth.currentUser || !confirm("Delete this event?")) return;
+            window.appEvents.splice(i, 1);
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'eventsDoc'), { events: window.appEvents });
+        };
+
+        document.getElementById('addEventForm').onsubmit = async (e) => {
+            e.preventDefault();
+            if (!auth || !auth.currentUser) return;
+            const input = document.getElementById('newEventInput');
+            const name = input.value.trim();
+            if (name && !window.appEvents.includes(name)) {
+                window.appEvents.push(name);
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'eventsDoc'), { events: window.appEvents });
+                input.value = '';
+            }
+        };
+
+        // --- RULE-BASED SMART SUGGESTIONS LOGIC (NO API REQUIRED) ---
+        function generateSmartSuggestions(feedbacks) {
+            const contentBox = document.getElementById('aiSuggestionsContent');
+            
+            if (!feedbacks || feedbacks.length === 0) {
+                contentBox.innerHTML = "<p style='color:#888; font-size:0.9rem;'>Not enough data for analysis yet.</p>";
+                return;
+            }
+
+            // Show a brief loading animation so it feels like a system is calculating
+            contentBox.innerHTML = `<p class="loading-ai" style="color:#666; font-size:0.9rem;">System is analyzing ${feedbacks.length} reviews...<span class="loading-dot">.</span></p>`;
+
+            setTimeout(() => {
+                // Combine all text into one giant lowercased string for keyword scanning
+                const combinedText = feedbacks.map(f => (f.experience + " " + (f.suggestions || ""))).join(' ').toLowerCase();
+
+                // Calculate specific averages to spot weak points
+                const avgTime = feedbacks.reduce((acc, f) => acc + Number(f.ratingTime || 5), 0) / feedbacks.length;
+                const avgVenue = feedbacks.reduce((acc, f) => acc + Number(f.ratingVenue || 5), 0) / feedbacks.length;
+                const avgOrg = feedbacks.reduce((acc, f) => acc + Number(f.ratingOrg || 5), 0) / feedbacks.length;
+                const avgOverall = feedbacks.reduce((acc, f) => acc + Number(f.ratingOverall || 5), 0) / feedbacks.length;
+
+                let suggestionsSet = new Set();
+
+                // 1. Rating-Based Logic (If they rate it low, suggest fixing it)
+                if (avgTime < 4.0) suggestionsSet.add("Optimize event scheduling to minimize delays and stick strictly to the timeline.");
+                if (avgVenue < 4.0) suggestionsSet.add("Improve venue facilities, focusing on audience comfort and spacing.");
+                if (avgOrg < 4.0) suggestionsSet.add("Streamline coordination between volunteers and participants for smoother execution.");
+
+                // 2. Keyword-Based Logic (If they mention specific words, suggest a fix)
+                if (/(sound|mic|audio|speaker|loud|hear|noise)/.test(combinedText)) {
+                    suggestionsSet.add("Conduct thorough audio and microphone testing before the event begins to ensure clear sound.");
+                }
+                if (/(hot|ac|fan|sweat|suffocating|air|ventilation)/.test(combinedText)) {
+                    suggestionsSet.add("Enhance venue ventilation and climate control for better audience comfort.");
+                }
+                if (/(crowd|space|congested|seat|chair|stand)/.test(combinedText)) {
+                    suggestionsSet.add("Re-evaluate crowd management strategies and ensure adequate seating capacity.");
+                }
+                if (/(water|food|drink|thirsty|snack)/.test(combinedText)) {
+                    suggestionsSet.add("Ensure easy access to drinking water and refreshments throughout the event.");
+                }
+                if (/(judge|bias|fair|result)/.test(combinedText)) {
+                    suggestionsSet.add("Ensure absolute transparency and clear criteria in the judging and evaluation process.");
+                }
+                if (/(boring|long|drag|engage)/.test(combinedText)) {
+                    suggestionsSet.add("Incorporate more interactive or high-energy elements to keep the audience fully engaged.");
+                }
+
+                // 3. Fallback Logic (If the event was perfect and no bad keywords trigger, use generic good advice)
+                const genericGoodSuggestions = [
+                    "Maintain the current high energy and enthusiastic atmosphere for future editions.",
+                    "Consider expanding the scale of this event next year based on current positive reception.",
+                    "Leverage the current successful format to introduce new, related sub-events.",
+                    "Ensure current successful volunteer coordination strategies are documented for next year."
+                ];
+                
+                const genericBadSuggestions = [
+                    "Collect more specific participant feedback to identify core areas of friction.",
+                    "Hold a post-event review meeting with coordinators to address recurring complaints.",
+                    "Increase volunteer presence to assist attendees more effectively."
+                ];
+
+                let finalSuggestions = Array.from(suggestionsSet);
+
+                // Fill array until we have exactly 3 suggestions
+                while (finalSuggestions.length < 3) {
+                    const pool = avgOverall >= 3.8 ? genericGoodSuggestions : genericBadSuggestions;
+                    const randomSuggestion = pool[Math.floor(Math.random() * pool.length)];
+                    if (!finalSuggestions.includes(randomSuggestion)) {
+                        finalSuggestions.push(randomSuggestion);
+                    }
+                }
+
+                // Limit exactly to 3
+                finalSuggestions = finalSuggestions.slice(0, 3);
+
+                // Build the HTML list
+                let html = `<ul style="color:#111;">`;
+                finalSuggestions.forEach(s => html += `<li>${s}</li>`);
+                html += `</ul>`;
+
+                contentBox.innerHTML = html;
+
+            }, 600); // 600ms delay to feel like a "calculating" system
+        }
+
+        const loadAnalyticsForEvent = (name) => {
+            const feeds = (window.submittedFeedbacks || []).filter(f => f.eventName === name);
+            const container = document.getElementById('statRating');
+            const countBox = document.getElementById('statCount');
+            const list = document.getElementById('recentCommentsList');
+            if (!feeds.length) {
+                container.innerText = "0.0"; countBox.innerText = "0";
+                list.innerHTML = "<p style='color:#888;'>No feedback yet.</p>"; 
+                generateSmartSuggestions([]);
+                return;
+            }
+            const avg = feeds.reduce((s, f) => s + (f.ratingOverall || 0), 0) / feeds.length;
+            container.innerText = avg.toFixed(1); countBox.innerText = feeds.length;
+            list.innerHTML = feeds.slice(-10).reverse().map(f => `<div class="comment-item">"${f.experience}" <small>${f.dept} | ${f.ratingOverall}/5</small></div>`).join('');
+            
+            // Call the new Smart Logic instead of the API
+            generateSmartSuggestions(feeds);
+        };
+
+        const aSelect = document.getElementById('analyticsEventSelect');
+        if (aSelect) aSelect.onchange = (e) => loadAnalyticsForEvent(e.target.value);
+    </script>
+</body>
+</html>
