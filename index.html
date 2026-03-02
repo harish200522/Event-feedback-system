@@ -533,7 +533,8 @@
                     </div>
                 </div>
                 
-                <button class="btn" onclick="logoutAdmin()" style="margin-top: 40px; max-width: 200px; background: rgba(255,255,255,0.1); border: 1px solid #333;">LOGOUT</button>
+                <button id="clearFeedbacksBtn" class="btn" style="background:#e63946; margin-top: 40px; max-width: 200px;" onclick="clearAllFeedbacks()">CLEAR ALL FEEDBACKS</button>
+                <button class="btn" onclick="logoutAdmin()" style="margin-top: 15px; max-width: 200px; background: rgba(255,255,255,0.1); border: 1px solid #333;">LOGOUT</button>
             </div>
             
             <div class="split-right" style="justify-content: flex-start; padding-top: 120px;">
@@ -572,6 +573,7 @@
                                 <div class="val" id="statCount">0</div>
                             </div>
                         </div>
+
                         
                         <label>RECENT FEEDBACK</label>
                         <div id="recentCommentsList" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column;"></div>
@@ -623,7 +625,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // LIVE FIREBASE CONFIGURATION
         const firebaseConfigStr = JSON.stringify({
@@ -689,14 +691,26 @@
                         updateMainDropdown();
                         updateAnalyticsDropdown();
                         renderAdminEvents();
+                        
+                        // Auto-select first event and load its analytics
+                        const aSelect = document.getElementById('analyticsEventSelect');
+                        if (aSelect && window.appEvents.length > 0) {
+                            aSelect.value = window.appEvents[0];
+                            loadAnalyticsForEvent(window.appEvents[0]);
+                        }
                     });
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'feedbacks'), (snap) => {
                         window.submittedFeedbacks = [];
                         snap.forEach(d => window.submittedFeedbacks.push(d.data()));
                         const countEl = document.getElementById('globalFeedbackCount');
                         if(countEl) countEl.innerText = snap.size;
+                        
+                        // Always load analytics for the selected event (or first event if none selected)
                         const sel = document.getElementById('analyticsEventSelect');
-                        if (sel && sel.value) loadAnalyticsForEvent(sel.value);
+                        const selectedEvent = sel && sel.value ? sel.value : (window.appEvents && window.appEvents.length > 0 ? window.appEvents[0] : null);
+                        if (selectedEvent) {
+                            loadAnalyticsForEvent(selectedEvent);
+                        }
                     });
                 }
             });
@@ -811,6 +825,34 @@
             window.appEvents.splice(i, 1);
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'eventsDoc'), { events: window.appEvents });
         };
+        
+        window.clearAllFeedbacks = async () => {
+            if (!auth || !auth.currentUser || !confirm("Are you sure you want to delete ALL feedbacks? This cannot be undone.")) return;
+            
+            try {
+                // Get all feedback documents
+                const feedbackCollection = collection(db, 'artifacts', appId, 'public', 'data', 'feedbacks');
+                const snapshot = await getDocs(feedbackCollection);
+                
+                // Delete each feedback document
+                const deletePromises = [];
+                snapshot.forEach(doc => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
+                
+                await Promise.all(deletePromises);
+                alert("All feedbacks have been cleared!");
+                
+                // Refresh the analytics display
+                const selectedEvent = document.getElementById('analyticsEventSelect').value || (window.appEvents && window.appEvents.length > 0 ? window.appEvents[0] : null);
+                if (selectedEvent) {
+                    loadAnalyticsForEvent(selectedEvent);
+                }
+            } catch (error) {
+                console.error("Error clearing feedbacks: ", error);
+                alert("Failed to clear feedbacks. Please try again.");
+            }
+        };
 
         document.getElementById('addEventForm').onsubmit = async (e) => {
             e.preventDefault();
@@ -824,7 +866,7 @@
             }
         };
 
-        // --- RULE-BASED SMART SUGGESTIONS LOGIC (NO API REQUIRED) ---
+        // --- RULE-BASED SMART SUGGESTIONS LOGIC (FEEDBACK-DRIVEN, NO UNWANTED SUGGESTIONS) ---
         function generateSmartSuggestions(feedbacks) {
             const contentBox = document.getElementById('aiSuggestionsContent');
             
@@ -833,82 +875,163 @@
                 return;
             }
 
-            // Show a brief loading animation so it feels like a system is calculating
+            // Show a brief loading animation
             contentBox.innerHTML = `<p class="loading-ai" style="color:#666; font-size:0.9rem;">System is analyzing ${feedbacks.length} reviews...<span class="loading-dot">.</span></p>`;
 
             setTimeout(() => {
-                // Combine all text into one giant lowercased string for keyword scanning
-                const combinedText = feedbacks.map(f => (f.experience + " " + (f.suggestions || ""))).join(' ').toLowerCase();
+                // Extract user-provided suggestions with quality filtering
+                const userSuggestions = feedbacks
+                    .map(f => f.suggestions || '')
+                    .filter(s => {
+                        if (!s || typeof s !== 'string') return false;
+                        const trimmed = s.trim();
+                        if (trimmed.length < 15) return false; // Ignore very short entries
+                        
+                        const lower = trimmed.toLowerCase();
+                        
+                        // Filter out only obvious placeholder/non-helpful responses
+                        const placeholdersPattern = /^(no suggestion|no more|nothing|none|no|n\/a|na|-|\.{2,}|ok$|fine$|good$|great$|yes|yeah|nope)$/i;
+                        if (placeholdersPattern.test(lower)) return false;
+                        
+                        // If it's just negative responses without substance, filter it
+                        if (/^(don'?t know|not sure|can't say|unsure|maybe)$/.test(lower)) return false;
+                        
+                        return true;
+                    })
+                    .map(s => s.trim());
 
-                // Calculate specific averages to spot weak points
-                const avgTime = feedbacks.reduce((acc, f) => acc + Number(f.ratingTime || 5), 0) / feedbacks.length;
-                const avgVenue = feedbacks.reduce((acc, f) => acc + Number(f.ratingVenue || 5), 0) / feedbacks.length;
-                const avgOrg = feedbacks.reduce((acc, f) => acc + Number(f.ratingOrg || 5), 0) / feedbacks.length;
-                const avgOverall = feedbacks.reduce((acc, f) => acc + Number(f.ratingOverall || 5), 0) / feedbacks.length;
+                // Calculate averages for all rating fields
+                const getRatingValue = (f, field) => {
+                    const val = Number(f[field]);
+                    return isNaN(val) || val < 1 || val > 5 ? 3 : val;
+                };
+                
+                const avgTime = feedbacks.length > 0 
+                    ? feedbacks.reduce((acc, f) => acc + getRatingValue(f, 'ratingTime'), 0) / feedbacks.length 
+                    : 3;
+                const avgVenue = feedbacks.length > 0 
+                    ? feedbacks.reduce((acc, f) => acc + getRatingValue(f, 'ratingVenue'), 0) / feedbacks.length 
+                    : 3;
+                const avgOrg = feedbacks.length > 0 
+                    ? feedbacks.reduce((acc, f) => acc + getRatingValue(f, 'ratingOrg'), 0) / feedbacks.length 
+                    : 3;
+                const avgOverall = feedbacks.length > 0 
+                    ? feedbacks.reduce((acc, f) => acc + getRatingValue(f, 'ratingOverall'), 0) / feedbacks.length 
+                    : 3;
+
+                // Count low ratings (3 or below)
+                const lowOrgCount = feedbacks.filter(f => getRatingValue(f, 'ratingOrg') <= 3).length;
+                const lowTimeCount = feedbacks.filter(f => getRatingValue(f, 'ratingTime') <= 3).length;
+                const lowVenueCount = feedbacks.filter(f => getRatingValue(f, 'ratingVenue') <= 3).length;
+                const lowOverallCount = feedbacks.filter(f => getRatingValue(f, 'ratingOverall') <= 3).length;
+
+                // Combine experience text for keyword analysis - only use non-empty entries
+                const validExperience = feedbacks
+                    .filter(f => f.experience && f.experience.toString().trim().length > 0)
+                    .map(f => f.experience.toString().toLowerCase());
+                const combinedExperience = validExperience.join(' ');
 
                 let suggestionsSet = new Set();
 
-                // 1. Rating-Based Logic (If they rate it low, suggest fixing it)
-                if (avgTime < 4.0) suggestionsSet.add("Optimize event scheduling to minimize delays and stick strictly to the timeline.");
-                if (avgVenue < 4.0) suggestionsSet.add("Improve venue facilities, focusing on audience comfort and spacing.");
-                if (avgOrg < 4.0) suggestionsSet.add("Streamline coordination between volunteers and participants for smoother execution.");
+                // PRIORITY 1: USER-ENTERED SUGGESTIONS (filtered for quality)
+                if (userSuggestions.length > 0) {
+                    // Group similar suggestions
+                    const uniqueSuggestions = [];
+                    userSuggestions.forEach(s => {
+                        // Check if similar suggestion already exists
+                        const isDuplicate = uniqueSuggestions.some(existing => {
+                            const existingStart = existing.toLowerCase().substring(0, 25);
+                            const sStart = s.toLowerCase().substring(0, 25);
+                            return existingStart === sStart || 
+                                   existing.toLowerCase().includes(s.toLowerCase()) ||
+                                   s.toLowerCase().includes(existing.toLowerCase());
+                        });
+                        if (!isDuplicate) {
+                            uniqueSuggestions.push(s);
+                        }
+                    });
+                    
+                    // Add deduplicated user suggestions (up to 2)
+                    uniqueSuggestions.slice(0, 2).forEach(s => {
+                        const displayText = s.length > 80 ? s.substring(0, 77) + '...' : s;
+                        suggestionsSet.add("💡 Feedback: " + displayText);
+                    });
+                }
 
-                // 2. Keyword-Based Logic (If they mention specific words, suggest a fix)
-                if (/(sound|mic|audio|speaker|loud|hear|noise)/.test(combinedText)) {
-                    suggestionsSet.add("Conduct thorough audio and microphone testing before the event begins to ensure clear sound.");
-                }
-                if (/(hot|ac|fan|sweat|suffocating|air|ventilation)/.test(combinedText)) {
-                    suggestionsSet.add("Enhance venue ventilation and climate control for better audience comfort.");
-                }
-                if (/(crowd|space|congested|seat|chair|stand)/.test(combinedText)) {
-                    suggestionsSet.add("Re-evaluate crowd management strategies and ensure adequate seating capacity.");
-                }
-                if (/(water|food|drink|thirsty|snack)/.test(combinedText)) {
-                    suggestionsSet.add("Ensure easy access to drinking water and refreshments throughout the event.");
-                }
-                if (/(judge|bias|fair|result)/.test(combinedText)) {
-                    suggestionsSet.add("Ensure absolute transparency and clear criteria in the judging and evaluation process.");
-                }
-                if (/(boring|long|drag|engage)/.test(combinedText)) {
-                    suggestionsSet.add("Incorporate more interactive or high-energy elements to keep the audience fully engaged.");
-                }
-
-                // 3. Fallback Logic (If the event was perfect and no bad keywords trigger, use generic good advice)
-                const genericGoodSuggestions = [
-                    "Maintain the current high energy and enthusiastic atmosphere for future editions.",
-                    "Consider expanding the scale of this event next year based on current positive reception.",
-                    "Leverage the current successful format to introduce new, related sub-events.",
-                    "Ensure current successful volunteer coordination strategies are documented for next year."
-                ];
+                // PRIORITY 2: FREQUENCY-BASED RATING ANALYSIS
+                // Only show if significant portion rated low
+                const lowRatingThreshold = Math.max(2, Math.ceil(feedbacks.length * 0.35));
                 
-                const genericBadSuggestions = [
-                    "Collect more specific participant feedback to identify core areas of friction.",
-                    "Hold a post-event review meeting with coordinators to address recurring complaints.",
-                    "Increase volunteer presence to assist attendees more effectively."
-                ];
+                if (lowOrgCount >= lowRatingThreshold) {
+                    suggestionsSet.add("👥 Organization: Multiple attendees rated coordination/organization poorly. Improve team management and execution.");
+                }
+                if (lowTimeCount >= lowRatingThreshold) {
+                    suggestionsSet.add("⏰ Timing/Pace: Multiple ratings indicate timing concerns. Optimize scheduling and maintain better pace.");
+                }
+                if (lowVenueCount >= lowRatingThreshold) {
+                    suggestionsSet.add("📍 Venue/Setup: Multiple attendees had venue concerns. Improve facilities and arrangement quality.");
+                }
+
+                // PRIORITY 3: KEYWORD-DRIVEN ANALYSIS
+                // Only trigger if multiple low ratings AND keywords present
+                
+                if (combinedExperience && lowOrgCount >= 2 && /(process|complicated|confusing|unclear|slow|streamline|procedure|coordination|manage)/.test(combinedExperience)) {
+                    suggestionsSet.add("⚙️ Process: Execution/process concerns identified. Simplify procedures and improve workflow clarity.");
+                }
+                
+                if (combinedExperience && lowOverallCount >= 2 && /(quality|standard|poor|subpar|disappointing|lacking|better|improve)/.test(combinedExperience)) {
+                    suggestionsSet.add("✓ Quality: Event quality needs improvement. Focus on execution standards and attention to detail.");
+                }
+                
+                if (combinedExperience && lowOrgCount >= 2 && /(fair|bias|transparent|equal|just|rules|criteria|decision|honest)/.test(combinedExperience)) {
+                    suggestionsSet.add("⚖️ Fairness: Concerns raised about fairness/transparency. Establish clear criteria and ensure integrity.");
+                }
+                
+                if (combinedExperience && lowOverallCount >= 2 && /(boring|dull|drag|monoton|slow|energy|interest|engaging|exciting)/.test(combinedExperience)) {
+                    suggestionsSet.add("⚡ Engagement: Event lacked energy/interest. Add more dynamic and compelling elements.");
+                }
+                
+                if (combinedExperience && lowOrgCount >= 2 && /(communication|unclear|confused|not.*inform|announce|explain|understand)/.test(combinedExperience)) {
+                    suggestionsSet.add("📢 Communication: Information sharing needs improvement. Ensure clear announcements and updates.");
+                }
+                
+                if (combinedExperience && lowVenueCount >= 2 && /(comfort|uncomfortable|experience|seating|space|crowded|jam)/.test(combinedExperience)) {
+                    suggestionsSet.add("😊 Comfort: Attendee experience/comfort needs improvement. Review physical setup and facilities.");
+                }
+                
+                if (combinedExperience && lowOrgCount >= 2 && /(technical|equipment|system|audio|mic|sound|broken|fail)/.test(combinedExperience)) {
+                    suggestionsSet.add("🔧 Technical: Technical issues reported. Test all equipment and systems thoroughly before events.");
+                }
+                
+                if (combinedExperience && lowVenueCount >= 2 && /(hot|cold|temperature|humid|ventilation|air|noisy|noise|sound)/.test(combinedExperience)) {
+                    suggestionsSet.add("🌡️ Environment: Environmental concerns (temperature, noise, ventilation). Improve venue conditions.");
+                }
 
                 let finalSuggestions = Array.from(suggestionsSet);
 
-                // Fill array until we have exactly 3 suggestions
-                while (finalSuggestions.length < 3) {
-                    const pool = avgOverall >= 3.8 ? genericGoodSuggestions : genericBadSuggestions;
-                    const randomSuggestion = pool[Math.floor(Math.random() * pool.length)];
-                    if (!finalSuggestions.includes(randomSuggestion)) {
-                        finalSuggestions.push(randomSuggestion);
+                // Limit to 4 most relevant suggestions
+                finalSuggestions = finalSuggestions.slice(0, 4);
+
+                // If no suggestions were generated, provide intelligent default message
+                if (finalSuggestions.length === 0) {
+                    if (avgOverall >= 4.0 && (lowOverallCount === 0 || lowOverallCount <= 1)) {
+                        contentBox.innerHTML = "<p style='color:#888; font-size:0.9rem;'>✓ Strong feedback! Event performed well. Maintain current quality standards.</p>";
+                    } else if (avgOverall >= 3.5) {
+                        contentBox.innerHTML = "<p style='color:#888; font-size:0.9rem;'>📊 Good overall response. Continue with current approach and monitor for any emerging patterns.</p>";
+                    } else {
+                        contentBox.innerHTML = "<p style='color:#888; font-size:0.9rem;'>📊 Feedback collected. Review individual ratings and comments to identify specific improvement areas.</p>";
                     }
+                    return;
                 }
 
-                // Limit exactly to 3
-                finalSuggestions = finalSuggestions.slice(0, 3);
-
                 // Build the HTML list
-                let html = `<ul style="color:#111;">`;
-                finalSuggestions.forEach(s => html += `<li>${s}</li>`);
+                let html = `<ul style="color:#111; padding-left: 20px;">`;
+                finalSuggestions.forEach(s => html += `<li style="margin-bottom: 12px; line-height: 1.5;">${s}</li>`);
                 html += `</ul>`;
 
                 contentBox.innerHTML = html;
 
-            }, 600); // 600ms delay to feel like a "calculating" system
+            }, 600);
         }
 
         const loadAnalyticsForEvent = (name) => {
