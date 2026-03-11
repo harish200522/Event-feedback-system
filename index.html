@@ -866,66 +866,36 @@
             }
         };
 
-        // --- RULE-BASED SMART SUGGESTIONS LOGIC (FEEDBACK-DRIVEN, NO UNWANTED SUGGESTIONS) ---
-        function generateSmartSuggestions(feedbacks) {
-            const contentBox = document.getElementById('aiSuggestionsContent');
-            
-            if (!feedbacks || feedbacks.length === 0) {
-                contentBox.innerHTML = "<p style='color:#888; font-size:0.9rem;'>Not enough data for analysis yet.</p>";
-                return;
-            }
-
-            // Show a brief loading animation
-            contentBox.innerHTML = `<p class="loading-ai" style="color:#666; font-size:0.9rem;">System is analyzing ${feedbacks.length} reviews...<span class="loading-dot">.</span></p>`;
-
-            setTimeout(() => {
-                // Extract user-provided suggestions with quality filtering
+        // --- RULE-BASED FALLBACK LOGIC (FEEDBACK-DRIVEN) ---
+        function generateRuleBasedSuggestions(feedbacks, contentBox) {
                 const userSuggestions = feedbacks
                     .map(f => f.suggestions || '')
                     .filter(s => {
                         if (!s || typeof s !== 'string') return false;
                         const trimmed = s.trim();
-                        if (trimmed.length < 15) return false; // Ignore very short entries
-                        
+                        if (trimmed.length < 15) return false;
                         const lower = trimmed.toLowerCase();
-                        
-                        // Filter out only obvious placeholder/non-helpful responses
                         const placeholdersPattern = /^(no suggestion|no more|nothing|none|no|n\/a|na|-|\.{2,}|ok$|fine$|good$|great$|yes|yeah|nope)$/i;
                         if (placeholdersPattern.test(lower)) return false;
-                        
-                        // If it's just negative responses without substance, filter it
                         if (/^(don'?t know|not sure|can't say|unsure|maybe)$/.test(lower)) return false;
-                        
                         return true;
                     })
                     .map(s => s.trim());
 
-                // Calculate averages for all rating fields
                 const getRatingValue = (f, field) => {
                     const val = Number(f[field]);
                     return isNaN(val) || val < 1 || val > 5 ? 3 : val;
                 };
                 
-                const avgTime = feedbacks.length > 0 
-                    ? feedbacks.reduce((acc, f) => acc + getRatingValue(f, 'ratingTime'), 0) / feedbacks.length 
-                    : 3;
-                const avgVenue = feedbacks.length > 0 
-                    ? feedbacks.reduce((acc, f) => acc + getRatingValue(f, 'ratingVenue'), 0) / feedbacks.length 
-                    : 3;
-                const avgOrg = feedbacks.length > 0 
-                    ? feedbacks.reduce((acc, f) => acc + getRatingValue(f, 'ratingOrg'), 0) / feedbacks.length 
-                    : 3;
                 const avgOverall = feedbacks.length > 0 
                     ? feedbacks.reduce((acc, f) => acc + getRatingValue(f, 'ratingOverall'), 0) / feedbacks.length 
                     : 3;
 
-                // Count low ratings (3 or below)
                 const lowOrgCount = feedbacks.filter(f => getRatingValue(f, 'ratingOrg') <= 3).length;
                 const lowTimeCount = feedbacks.filter(f => getRatingValue(f, 'ratingTime') <= 3).length;
                 const lowVenueCount = feedbacks.filter(f => getRatingValue(f, 'ratingVenue') <= 3).length;
                 const lowOverallCount = feedbacks.filter(f => getRatingValue(f, 'ratingOverall') <= 3).length;
 
-                // Combine experience text for keyword analysis - only use non-empty entries
                 const validExperience = feedbacks
                     .filter(f => f.experience && f.experience.toString().trim().length > 0)
                     .map(f => f.experience.toString().toLowerCase());
@@ -933,12 +903,9 @@
 
                 let suggestionsSet = new Set();
 
-                // PRIORITY 1: USER-ENTERED SUGGESTIONS (filtered for quality)
                 if (userSuggestions.length > 0) {
-                    // Group similar suggestions
                     const uniqueSuggestions = [];
                     userSuggestions.forEach(s => {
-                        // Check if similar suggestion already exists
                         const isDuplicate = uniqueSuggestions.some(existing => {
                             const existingStart = existing.toLowerCase().substring(0, 25);
                             const sStart = s.toLowerCase().substring(0, 25);
@@ -951,15 +918,12 @@
                         }
                     });
                     
-                    // Add deduplicated user suggestions (up to 2)
                     uniqueSuggestions.slice(0, 2).forEach(s => {
                         const displayText = s.length > 80 ? s.substring(0, 77) + '...' : s;
                         suggestionsSet.add("💡 Feedback: " + displayText);
                     });
                 }
 
-                // PRIORITY 2: FREQUENCY-BASED RATING ANALYSIS
-                // Only show if significant portion rated low
                 const lowRatingThreshold = Math.max(2, Math.ceil(feedbacks.length * 0.35));
                 
                 if (lowOrgCount >= lowRatingThreshold) {
@@ -972,9 +936,6 @@
                     suggestionsSet.add("📍 Venue/Setup: Multiple attendees had venue concerns. Improve facilities and arrangement quality.");
                 }
 
-                // PRIORITY 3: KEYWORD-DRIVEN ANALYSIS
-                // Only trigger if multiple low ratings AND keywords present
-                
                 if (combinedExperience && lowOrgCount >= 2 && /(process|complicated|confusing|unclear|slow|streamline|procedure|coordination|manage)/.test(combinedExperience)) {
                     suggestionsSet.add("⚙️ Process: Execution/process concerns identified. Simplify procedures and improve workflow clarity.");
                 }
@@ -1008,11 +969,8 @@
                 }
 
                 let finalSuggestions = Array.from(suggestionsSet);
-
-                // Limit to 4 most relevant suggestions
                 finalSuggestions = finalSuggestions.slice(0, 4);
 
-                // If no suggestions were generated, provide intelligent default message
                 if (finalSuggestions.length === 0) {
                     if (avgOverall >= 4.0 && (lowOverallCount === 0 || lowOverallCount <= 1)) {
                         contentBox.innerHTML = "<p style='color:#888; font-size:0.9rem;'>✓ Strong feedback! Event performed well. Maintain current quality standards.</p>";
@@ -1024,14 +982,136 @@
                     return;
                 }
 
-                // Build the HTML list
                 let html = `<ul style="color:#111; padding-left: 20px;">`;
                 finalSuggestions.forEach(s => html += `<li style="margin-bottom: 12px; line-height: 1.5;">${s}</li>`);
                 html += `</ul>`;
+                contentBox.innerHTML = html;
+        }
 
+        // --- AI-POWERED SMART SUGGESTIONS WITH RULE-BASED FALLBACK ---
+        async function generateSmartSuggestions(feedbacks) {
+            const contentBox = document.getElementById('aiSuggestionsContent');
+            
+            if (!feedbacks || feedbacks.length === 0) {
+                contentBox.innerHTML = "<p style='color:#888; font-size:0.9rem;'>Not enough data for analysis yet.</p>";
+                return;
+            }
+
+            // Show loading animation while API request is pending
+            contentBox.innerHTML = `<p class="loading-ai" style="color:#666; font-size:0.9rem;">System is analyzing ${feedbacks.length} reviews...<span class="loading-dot">.</span></p>`;
+
+            // --- Aggregate all feedback data into a comprehensive prompt ---
+            const getRating = (f, field) => {
+                const val = Number(f[field]);
+                return isNaN(val) || val < 1 || val > 5 ? 3 : val;
+            };
+
+            // Calculate average ratings
+            const avgTime = (feedbacks.reduce((s, f) => s + getRating(f, 'ratingTime'), 0) / feedbacks.length).toFixed(1);
+            const avgVenue = (feedbacks.reduce((s, f) => s + getRating(f, 'ratingVenue'), 0) / feedbacks.length).toFixed(1);
+            const avgOrg = (feedbacks.reduce((s, f) => s + getRating(f, 'ratingOrg'), 0) / feedbacks.length).toFixed(1);
+            const avgOverall = (feedbacks.reduce((s, f) => s + getRating(f, 'ratingOverall'), 0) / feedbacks.length).toFixed(1);
+
+            // Count low ratings (3 or below)
+            const lowTime = feedbacks.filter(f => getRating(f, 'ratingTime') <= 3).length;
+            const lowVenue = feedbacks.filter(f => getRating(f, 'ratingVenue') <= 3).length;
+            const lowOrg = feedbacks.filter(f => getRating(f, 'ratingOrg') <= 3).length;
+
+            // Collect text feedback
+            const experiences = feedbacks
+                .map(f => f.experience || '')
+                .filter(s => s.trim().length > 0)
+                .map(s => s.trim());
+            const suggestions = feedbacks
+                .map(f => f.suggestions || '')
+                .filter(s => s.trim().length > 0)
+                .map(s => s.trim());
+
+            const ratingSummary = `Rating Summary (out of 5, from ${feedbacks.length} responses):
+- Time Management: ${avgTime}/5 (${lowTime} attendees rated 3 or below)
+- Venue/Setup: ${avgVenue}/5 (${lowVenue} attendees rated 3 or below)
+- Organization: ${avgOrg}/5 (${lowOrg} attendees rated 3 or below)
+- Overall: ${avgOverall}/5`;
+
+            const aggregatedText = [
+                ratingSummary,
+                experiences.length > 0 ? "Attendee experiences: " + experiences.join("; ") : "",
+                suggestions.length > 0 ? "Attendee suggestions: " + suggestions.join("; ") : ""
+            ].filter(Boolean).join("\n\n");
+
+            const HF_API_KEY = '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';
+            const HF_MODEL = 'mistralai/Mistral-7B-Instruct-v0.2';
+            const HF_URL = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+
+            const prompt = `<s>[INST] You are an expert event improvement analyst for a college event. Analyze the following student feedback data including ratings and comments. Focus especially on the weakest-rated areas (Time Management, Venue, Organization) and the written feedback to identify what needs improvement.
+
+${aggregatedText}
+
+Based on this analysis, provide exactly 3 short, specific, actionable bullet points for improvements. Each bullet should reference the relevant rating category (Time, Venue, or Organization) if applicable. Do not number them, use bullet points (•). Do not repeat the ratings back. Only give actionable advice.
+
+Return ONLY the 3 bullet points, nothing else. [/INST]`;
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const response = await fetch(HF_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${HF_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inputs: prompt,
+                        parameters: { max_new_tokens: 250, temperature: 0.7, return_full_text: false }
+                    }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`API returned status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                let generatedText = '';
+                if (Array.isArray(data) && data.length > 0 && data[0].generated_text) {
+                    generatedText = data[0].generated_text.trim();
+                } else if (data.error) {
+                    throw new Error(data.error);
+                } else {
+                    throw new Error('Unexpected API response format');
+                }
+
+                if (generatedText.length < 10) {
+                    throw new Error('AI response too short');
+                }
+
+                // Parse bullet points from AI response
+                const lines = generatedText.split('\n')
+                    .map(l => l.replace(/^[\s•\-\*\d.]+/, '').trim())
+                    .filter(l => l.length > 5);
+
+                const bulletPoints = lines.slice(0, 3);
+
+                if (bulletPoints.length === 0) {
+                    throw new Error('No valid bullet points parsed');
+                }
+
+                let html = `<ul style="color:#111; padding-left: 20px;">`;
+                bulletPoints.forEach(point => {
+                    html += `<li style="margin-bottom: 12px; line-height: 1.5;">${point.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`;
+                });
+                html += `</ul>`;
                 contentBox.innerHTML = html;
 
-            }, 600);
+            } catch (err) {
+                // Fallback to rule-based suggestions on any error
+                console.warn('Hugging Face API failed, using rule-based fallback:', err.message);
+                generateRuleBasedSuggestions(feedbacks, contentBox);
+            }
         }
 
         const loadAnalyticsForEvent = (name) => {
